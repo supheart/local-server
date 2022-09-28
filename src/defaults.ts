@@ -1,4 +1,5 @@
-import { LocalServerOptions } from "./Options/Definitions";
+import { ILocalServerOptions } from './Options';
+import { LocalServerOptions } from './Options/Definitions';
 
 // 解析默认参数
 const DefinitionDefaults = Object.keys(LocalServerOptions).reduce((memo, key) => {
@@ -7,6 +8,6 @@ const DefinitionDefaults = Object.keys(LocalServerOptions).reduce((memo, key) =>
     memo[key] = def.default;
   }
   return memo;
-}, {});
+}, {} as ILocalServerOptions);
 
 export default { ...DefinitionDefaults };

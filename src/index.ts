@@ -1,7 +1,7 @@
 import LocalServer from "./LocalServer";
-import { LocalServerOptions } from "./Options";
+import { ILocalServerOptions } from "./Options";
 
-const _localServer = function (options: LocalServerOptions) {
+const _localServer = function (options: ILocalServerOptions) {
   const server = new LocalServer(options);
   return server.app;
 };

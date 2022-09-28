@@ -1,18 +1,20 @@
 import express, { Express } from 'express';
 import bodyParser from 'body-parser';
-import { LocalServerOptions } from './Options';
+import { ILocalServerOptions } from './Options';
 import requiredParameter from './requiredParameter';
-import { allowCrossDomain } from './MiddleWares';
+import { allowCrossDomain, allowMethodOverride, handleParseHeader } from './MiddleWares';
 import { getControllers } from './Controllers';
 import Config from './Config';
 import defaultDefinition from './defaults';
 import PagesRouter from './Routers/PagesRouter';
 import PublicAPIRouter from './Routers/PublicAPIRouter';
+import PromiseRouter from './PromiseRouter';
+import { ClassesRouter } from './Routers/ClassesRouter';
 
 class LocalServer {
   _app!: Express;
   config!: Record<string, any>;
-  constructor(options: LocalServerOptions) {
+  constructor(options: ILocalServerOptions) {
     injectDefaults(options);
     const {
       appId = requiredParameter('You must provide an appId!'),
@@ -47,16 +49,28 @@ class LocalServer {
       });
     });
 
+    // Page router
     const pageRouter = pages.enableRouter ?
       new PagesRouter(pages).expressRouter() :
       new PublicAPIRouter().expressRouter();
-
     api.use('/', bodyParser.urlencoded({ extended: false }), pageRouter);
+    api.use(allowMethodOverride);
+    api.use(handleParseHeader);
+
+    // App router
+    const appRouter = LocalServer.promiseRouter(appId);
+    api.use(appRouter.expressRouter());
 
     return api;
   }
 
-  static promiseRouter() { }
+  static promiseRouter(appId: string): PromiseRouter {
+    const routers = [new ClassesRouter()];
+    const routes = routers.reduce((memo, router) => memo.concat(router.routes), []);
+    const appRouter = new PromiseRouter(routes, appId);
+
+    return appRouter;
+  }
 
   start() { }
 
@@ -66,7 +80,7 @@ class LocalServer {
 
 }
 
-function injectDefaults(options: LocalServerOptions) {
+function injectDefaults(options: ILocalServerOptions): void {
   Object.keys(defaultDefinition).forEach(key => {
     if (!Object.prototype.hasOwnProperty.call(options, key)) {
       options[key] = defaultDefinition[key];

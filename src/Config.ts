@@ -1,11 +1,19 @@
 import AppCache from "./caches";
 
+function removeTrailingSlash(str: string) {
+  if (!str) return str;
+  if (str.endsWith('/')) {
+    str = str.substring(0, str.length - 1);
+  }
+  return str;
+}
+
 export class Config {
   _mount: string;
   _applicationId: string;
   allowHeaders?: string[];
   allowOrigin?: string;
-  static get(applicationId: string) {
+  static get(applicationId: string, mount?: string) {
     const cacheInfo = AppCache.get(applicationId);
     if (!cacheInfo) {
       return;
@@ -18,7 +26,7 @@ export class Config {
       config[key] = cacheInfo[key];
     });
 
-    config.mount = null;
+    config.mount = removeTrailingSlash(mount);
     // TODO SessionExpire and EmailVerify
     return config;
   }
@@ -37,7 +45,7 @@ export class Config {
     this._applicationId = newValue;
   }
 
-  static put(serverConfiguration: Record<string, string>) {
+  static put(serverConfiguration: Record<string, any>) {
     Config.validate(serverConfiguration);
     AppCache.put(serverConfiguration.appId, serverConfiguration);
     // TODO setupPasswordValidator
@@ -45,10 +53,18 @@ export class Config {
   }
   static validate({
     masterKey,
+    maxLimit,
     readOnlyMasterKey,
-  }: Record<string, string>) {
+  }: Record<string, any>) {
     if (masterKey === readOnlyMasterKey) {
       throw new Error('masterKey和readOnlyMasterKey不能一样');
+    }
+    this.validateMaxLimit(maxLimit);
+  }
+
+  static validateMaxLimit(maxLimit: number): void {
+    if (maxLimit <= 0) {
+      throw new Error('Max limit must be a value greater than 0.');
     }
   }
 }
